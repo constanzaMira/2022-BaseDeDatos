@@ -85,20 +85,53 @@ class Producto(BaseModel):
     stock = IntegerField()
     tipo = TextField()
     
+    
+def create_cliente():
+    numero = input("Ingrese numero")
+    nombre = input("Ingrese nombre")
+    direccion = input("Ingrese direccion")
+    telefono = input("Ingrese telefono")
+    email = input("Ingrese email")
+    
+    if not Cliente.where(Cliente.numero == numero).exist():
+        new_cliente = Cliente.create(numero,nombre,direccion,telefono,email)
+    else: 
+        print ("Cliente ya registrado")
 
+def delete_cliente():
+    numero = input("Ingrese numero del cliente que quiere eliminar")
+    if Cliente.where(Cliente.numero == numero).exist():
+        cliente_delete = Cliente.get(Cliente.numero == numero)
+        cliente_delete.delete_instance()
+    else:
+        print ("Cliente no existe")
+        
+def update_cliente():
+    numero = input("Ingrese numero del cliente que quiere modificar")
+    print ("Ingrese que tipo de dato desea cambiar" )
+    print ("1. Numero" )
+    print ("2. Nombre" )
+    print ("3. Direccion")
+    print ("4. Telefono" )
+    print ("5. Email")
+    dato_update = input ()
+    valor_update = input("Ingrese que valor quiere colocar en su lugar")
+    if Cliente.where(Cliente.numero==numero).exist():
+        if (dato_update==1):
+            query = Cliente.update(numero = valor_update)
+            query.execute()
+        elif (dato_update==2):
+            query = Cliente.update(nombre = valor_update)
+            query.execute()
+        elif (dato_update==3):
+            query = Cliente.update(direccion = valor_update)
+            query.execute()
+        elif (dato_update==4):
+            query = Cliente.update(telefono = valor_update)
+            query.execute()
+        elif (dato_update==5):
+            query = Cliente.update(email = valor_update)
+            query.execute()
+            
 if __name__ == "__main__":
-        pg_db.connect()
-
-        #crear cliente
-        cliente1= Cliente.create(numero="23786",nombre="constanza",direccion="francisco aguilar", telefono="098411324", email="cmira@correo.um.edu.uy")
-    #   cliente1.save()
-
-    #   dar de baja cliente
-    #   cliente = Cliente.get(Cliente.numero == "23786")
-    #   cliente.delete_instance()
-
-    #   modificacion de cliente
-    #   query=cliente1.update(nombre="lucia")
-    #   query.execute()
-
-    #   psql_db.create_tables(cliente , contiene_prod , cuenta , pago , pedido_completo , pedido_simple , pedido , producto , tarjeta)
+        DAL_ORM
