@@ -134,4 +134,5 @@ def update_cliente():
             query.execute()
             
 if __name__ == "__main__":
-        DAL_ORM
+    pg_db.connect()
+    #DAL_ORM
