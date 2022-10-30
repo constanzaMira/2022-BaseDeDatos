@@ -40,11 +40,12 @@ class Pago(BaseModel):
     numero_tarjeta = IntegerField()
     tarjeta= ForeignKeyField(Tarjeta, to_field="numero")
 
+
 class Pedido(BaseModel):
     numero = IntegerField(primary_key=True)
     numero_cliente = IntegerField()
     estado = TextField()
-
+    cliente= ForeignKeyField(Cliente, to_field="numero")
 
 class Pedido_compuesto(BaseModel):
     numero_pedido = IntegerField()
@@ -60,24 +61,19 @@ class Pedido_simple(BaseModel):
     pedido=ForeignKeyField(Pedido, to_field="numero")
     cuenta= ForeignKeyField(Cuenta, to_field="numero")
     
-class Pedido(BaseModel):
-    numero = IntegerField(primary_key=True)
-    numero_cliente = IntegerField()
-    estado = TextField()
-    cliente= ForeignKeyField(Cliente, to_field="numero")
-    
-    
-class Contiene_prod(BaseModel):
-    numero_pedido_simple = IntegerField()
-    numero_pedido = IntegerField()
-    pedido= ForeignKeyField(Pedido,to_field="numero")
-    pedido_simple= ForeignKeyField(Pedido_simple,to_field="numero_pedido")
-    primary_key= CompositeKey(numero_pedido,numero_pedido_simple)
-    
+
 class Producto(BaseModel):
     numero = IntegerField(primary_key=True)
     stock = IntegerField()
     tipo = TextField()
+    
+class Contiene_prod(BaseModel):
+    numero_pedido_simple = IntegerField()
+    numero_producto = IntegerField()
+    producto= ForeignKeyField(Producto,to_field="numero")
+    pedido_simple= ForeignKeyField(Pedido_simple,to_field="numero_pedido")
+    primary_key= CompositeKey(numero_producto,numero_pedido_simple)
+
     
 def menu():
     ans=True
@@ -116,26 +112,22 @@ def menu():
         elif option == "2":
             ans=True
             while ans:
-                print("1. Pedido simple")
-                print("2. Pedido compuesto")
-                print("3. Regresar al menu")
-                print("4. Salir")
+                print("1. Realizar un pedido")
+                print("2. Regresar al menu")
+                print("3. Salir")
                 option3 = input("Seleccione una de las opciones")
                 if option3 == "1":
-                    pedido_simple()
+                    pedido()
                 elif option3 == "2":
-                    pedido_compuesto()
-                elif option3 == "3":
                     menu()
-                elif option3 == "4":
+                elif option3 == "3":
                     exit()
                 else: 
                     print("Seleccione una de las opciones correctamente")
                     #FIXme
-                    return
-                    
-
+                    return            
         elif option == "3":
+            ingresar_articulos()
             return
         elif option == "4":
             return
@@ -218,13 +210,49 @@ def update_cliente():
             print("Numero ingresado incorrecto")
             update_cliente()
         
-def pedido_simple():
-    numero_pedido = input("Ingrese numero de pedido")
-    numero_cuenta = input("Ingrese numero de cuenta")
-    numero_pago = input("Ingrese numero de pago")
-    pedido = input()
-    cuenta = input()
-    return
+def crear_pedido():
+    print("ingrese el tipo de pedido a realizar")
+    print("1-Pedido simple")
+    print("2-Pedido compuesto")
+    pedido_a_realizar=input("")
+    if pedido_a_realizar=="1":
+        numero_pedido = input ("ingrese numero de pedido")
+        numero_cuenta = input("ingrese numero de cuenta")
+        numero_pago = input("ingrese numero de pago")
+        numero_cliente = input("Ingrese numero de cliente")  #este nose si va o no
+        new_pedido_simple = Pedido_simple.create(numero_pedido = numero_pedido,numero_cuenta=numero_cuenta,numero_pago=numero_pago)
+        estado="en proceso"
+        new_pedido=Pedido.create(numero=numero_pedido,numero_cliente=numero_cliente,estado=estado)
+        new_pedido_simple.save()
+        new_pedido.save()
+        #Si la cantidad de pedidos de un clente supera los 20 articulos no es simple, hay que verificarlo
+
+    #estado = TextField() #despachado o entregado
+
+    #un pedido compuesto tiene dos o mas pedidos compuestos o simples
+    pedido= Pedido_simple.select(Pedido_simple.numero_pedido).where(Pedido_simple.numero_pedido==numero_p )
+   
+
+def ingresar_articulos():
+    numero = input("Ingrese numero de producto")
+    stock = input("Ingrese stock del producto")
+    tipo=input("ingrese tipo de producto")
+    if not Producto.select().where(Producto.numero == numero).exists():
+        new_producto = Producto.create(numero = numero,stock=stock,tipo=tipo)
+        new_producto.save()
+        print("Producto ingresado correctamente")
+        menu()
+    else: 
+        print ("Producto ya registrado")
+        respuesta= input("Desea cambiar la cantidad de articulos en stock?(si/no)")
+        if respuesta=="si":
+            stock1 = input("Ingrese stock del producto")
+            query = Producto.update(stock = stock1)
+            query.execute()
+            menu()
+        else:
+            menu()
+
 
 def pedido_compuesto():
     return
