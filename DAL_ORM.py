@@ -133,7 +133,7 @@ def menu():
                     listar_clientes()
                 elif option3 == "4":
                     pedidos_de_cliente()
-                elif option2 == "5":
+                elif option3 == "5":
                     ans3=False
                 else:
                     print("Opcion invalida")
@@ -378,12 +378,12 @@ def listar_pedidos_segun_estado():
 def listar_productos_en_stock():
     #los productos en stock con su disponibilidad
     for producto in Producto.select(Producto.numero,Producto.stock):
-        print(producto)
+        print(producto.numero,producto.stock)
 
 def listar_clientes():
     #Los clientes mostrando sus atributos
-        for cliente in Cliente.select():
-            print(cliente)
+        for cliente in Cliente.select(Cliente.numero,Cliente.nombre,Cliente.telefono,Cliente.email,Cliente.direccion):
+            print(cliente.numero,cliente.nombre, cliente.telefono,cliente.email,cliente.direccion)
 
 
 def pedidos_de_cliente():
