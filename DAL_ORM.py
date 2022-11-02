@@ -373,8 +373,6 @@ def listar_pedidos_segun_estado():
         print(pedido)
 
 
-
-
 def listar_productos_en_stock():
     #los productos en stock con su disponibilidad
     for producto in Producto.select(Producto.numero,Producto.stock):
