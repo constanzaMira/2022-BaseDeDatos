@@ -56,10 +56,10 @@ class Pedido_compuesto(BaseModel):
 
 class Pedido_simple(BaseModel):
     numero_pedido = AutoField(primary_key=True)
-    numero_cuenta = IntegerField()
     numero_pago = IntegerField()
-    pedido=ForeignKeyField(Pedido, backref="numero") 
-    cuenta= ForeignKeyField(Cuenta, backref="numero")
+    numero_pedido=ForeignKeyField(Pedido) 
+    numero_cuenta= ForeignKeyField(Cuenta)
+
     
 
 class Producto(BaseModel):
@@ -80,9 +80,8 @@ def menu():
         print("1. Realizar el alta, baja y modificación de clientes")
         print("2. Ingresar pedidos simples y compuesto")
         print("3. Ingresar articulos en el stock")
-        print("4. Registrar el pago o no de los pedidos") #El registro es automatico NO entrar a esta opcion
-        print("5. Listar")
-        print("6. Salir")
+        print("4. Listar")
+        print("5. Salir")
         option = input("Seleccione una de las opciones")
 
         if option == "1": 
@@ -111,12 +110,8 @@ def menu():
         elif option == "2":
             crear_pedido()
         elif option == "3":
-            ingresar_articulos()
-    
+            ingresar_articulos()     
         elif option == "4":
-            registrar_pago()
-            
-        elif option == "5":
             ans3=True
             while ans3:
                 print("1. Listar pedidos segun su estado")
@@ -138,7 +133,7 @@ def menu():
                 else:
                     print("Opcion invalida")
                     return       
-        elif option=="6":
+        elif option=="5":
             exit()
         else: 
             print("Opcion invalida")
@@ -168,11 +163,16 @@ def create_cliente():
         banco=input("ingrese nombre del banco")
         tipo=input("ingrese tipo de trajeta (credito/debito)")
         #Falta controlar que solo se puede crear la tarjeta si es que no existe para ese banco y para ese tipo credito/debito
+
         new_tarjeta=Tarjeta(banco=banco,tipo=tipo)
         new_tarjeta.save()
+
         numero_tarjeta=new_tarjeta
+
         new_cuenta=Cuenta.create(numero_cliente=numero_cliente,numero_tarjeta=numero_tarjeta)
         new_cuenta.save()
+        print("Cuenta registrada correctamente")
+        return
     else:
         return
 
@@ -248,16 +248,24 @@ def crear_pedido():
 
         while (mas_productos):
             numero_producto=input("ingresar id producto")
-            cantidad_a_comprar=input("ingresar cantidad que se desea comprar")
+            cantidad_a_comprar=int(input("ingresar cantidad que se desea comprar"))
             cantidad_productos_en_la_compra=cantidad_productos_en_la_compra + cantidad_a_comprar
             cantidad_de_producto= Producto.select(Producto.stock).where(Producto.numero == numero_producto)
-            if cantidad_productos_en_la_compra>20 or cantidad_a_comprar-cantidad_de_producto<0:
+            c = cantidad_de_producto
+            print(c)
+
+            #cantidad_de_producto no agarra el numero, solo la query por lo que no se puede hacer la resta, FIXme
+
+            if cantidad_productos_en_la_compra>20 or (cantidad_de_producto-cantidad_a_comprar)<0:
+                print(cantidad_productos_en_la_compra)
+                print(cantidad_de_producto-cantidad_a_comprar)
                 print("No es posible realizar pedido")
-                estado="rechazado"
-                registrar_pago(estado)
+                query = Pedido.update(estado="rechazado")
+                query.execute()
+                return
             else:
-                estado1="Realizado"
-                registrar_pago(estado1)
+                estado1="realizado"
+                numero_pago=registrar_pago(estado1)
                 new_pedido_simple = Pedido_simple.create(numero_pedido = numero_pedido,numero_cuenta=numero_cuenta,numero_pago=numero_pago)  
                 new_pedido_simple.save()
                 stock_nuevo= cantidad_de_producto-cantidad_a_comprar
@@ -324,7 +332,7 @@ def simple_dentro_de_compuesto(numero_pedido):
             return
         else:
             estado1="Realizado"
-            registrar_pago(estado1)
+            numero_pago=registrar_pago(estado1)
             new_pedido_simple = Pedido_simple.create(numero_pedido = numero_pedido,numero_cuenta=numero_cuenta,numero_pago=numero_pago)  
             new_pedido_simple.save()
             stock_nuevo= cantidad_de_producto-cantidad_a_comprar
@@ -347,30 +355,19 @@ def registrar_pago(estado):
 
 
 def ingresar_articulos():
-    numero = input("Ingrese numero de producto")
-    stock = input("Ingrese stock del producto")
+    stock=input("Ingrese stock del producto")
     tipo=input("ingrese tipo de producto")
-    if not Producto.select().where(Producto.numero == numero).exists():
-        new_producto = Producto.create(numero = numero,stock=stock,tipo=tipo)
-        new_producto.save()
-        print("Producto ingresado correctamente")
-        return
-    else: 
-        print ("Producto ya registrado")
-        respuesta= input("Desea cambiar la cantidad de articulos en stock?(si/no)")
-        if respuesta=="si":
-            stock1 = input("Ingrese stock del producto")
-            query = Producto.update(stock = stock1)
-            query.execute()
-            return
-        else:
-            return
+    
+    new_producto = Producto.create(stock=stock,tipo=tipo)
+    new_producto.save()
+    print("Producto ingresado correctamente")
+    return
 
 def listar_pedidos_segun_estado():
     #Los pedidos en un estado dado
     query = Pedido.select(Pedido.numero, Pedido.estado).order_by(Pedido.numero)
     for pedido in query:
-        print(pedido)
+        print(pedido.numero, pedido.estado)
 
 
 def listar_productos_en_stock():
@@ -387,13 +384,17 @@ def listar_clientes():
 def pedidos_de_cliente():
     #Los pedidos de un cliente
 
-    query= select(Cliente.email,Pedido.numero).join(Cliente,Pedido).group_by(Cliente.email)
-    print(query)
+    #query= select(Cliente.email,Pedido.numero).join(Cliente,Pedido).group_by(Cliente.email)
+    #print(query)
 
-    sql='''SELECT c."email", p."numero" FROM "Cliente" AS c, "Pedido" AS p
-                            JOIN numero ON c."numero" = p."numero_cliente"
+    sql='''SELECT c."email", p."numero" FROM "Cliente" AS c INNER JOIN "Pedido" AS p
+                            ON c."numero" = p."numero_cliente"
                             GROUP BY c."email", p."numero"'''
-    psycopg2.cursor.execute(sql)
+
+    #No reconoce cursor en psycopg2
+    with psycopg2.cursor() as curs:
+        curs.execute(sql)
+        #psycopg2.cursor.execute(sql)
 
 
 
