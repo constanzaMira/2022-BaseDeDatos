@@ -1,9 +1,11 @@
 
 import email
+from multiprocessing import connection
 from multiprocessing.connection import Client
 from operator import truediv
 from re import I
 from select import select
+from sqlite3 import Cursor
 from time import process_time_ns
 from venv import create
 from peewee import *
@@ -242,7 +244,8 @@ def crear_pedido():
         new_pedido = Pedido.create(numero_cliente=numero_cliente,estado="en proceso")
         new_pedido.save()
         numero_pedido=new_pedido
-
+        print(numero_pedido)
+        
         mas_productos=True
         cantidad_productos_en_la_compra=0
 
@@ -251,8 +254,7 @@ def crear_pedido():
             cantidad_a_comprar=int(input("ingresar cantidad que se desea comprar"))
             cantidad_productos_en_la_compra=cantidad_productos_en_la_compra + cantidad_a_comprar
             cantidad_de_producto= Producto.select(Producto.stock).where(Producto.numero == numero_producto)
-            c = cantidad_de_producto
-            print(c)
+            print(cantidad_de_producto)
 
             #cantidad_de_producto no agarra el numero, solo la query por lo que no se puede hacer la resta, FIXme
 
@@ -268,16 +270,20 @@ def crear_pedido():
                 numero_pago=registrar_pago(estado1)
                 new_pedido_simple = Pedido_simple.create(numero_pedido = numero_pedido,numero_cuenta=numero_cuenta,numero_pago=numero_pago)  
                 new_pedido_simple.save()
+                
                 stock_nuevo= cantidad_de_producto-cantidad_a_comprar
                 query = Producto.update(stock = stock_nuevo)
                 query.execute()
-                query1 = Pedido.update(estado ="realizado" )#como se que estoy cambiando el estado del pedido que quiero
-                query1.execute()
+                
+                for pedido in Pedido:
+                    if Pedido.numero == numero_pedido:
+                        query1 = Pedido.update(estado ="realizado")#como se que estoy cambiando el estado del pedido que quiero
+                        query1.execute()
+                        
                 respuesta=input( "Desea seguir agregando items? (Si/No)")
                 if respuesta=="No":
-                    mas_productos=False 
-                else:
-                    continue
+                    mas_productos=False
+                    
     if pedido_a_realizar=="2":
 
         email_cliente = input("Ingrese email") 
@@ -383,23 +389,25 @@ def listar_clientes():
 
 def pedidos_de_cliente():
     #Los pedidos de un cliente
-
+    pg = psycopg2.connect(dbname="pedidos" , user="labuser" , password="labuser",host="192.168.56.101", port=5432)
     #query= select(Cliente.email,Pedido.numero).join(Cliente,Pedido).group_by(Cliente.email)
     #print(query)
 
-    sql='''SELECT c."email", p."numero" FROM "Cliente" AS c INNER JOIN "Pedido" AS p
-                            ON c."numero" = p."numero_cliente"
-                            GROUP BY c."email", p."numero"'''
+    sql='''SELECT c.email, p.numero FROM Cliente AS c JOIN Pedido AS p
+                            ON (c.numero = p.numero_cliente_id)'''
 
-    #No reconoce cursor en psycopg2
-    with psycopg2.cursor() as curs:
-        curs.execute(sql)
-        #psycopg2.cursor.execute(sql)
+    cur = pg.cursor()
+
+    pedidos = cur.execute(sql)  
+    
+    print(pedidos)
+    
+    cur.close()
 
 
 
 if __name__ == "__main__":
-    pg_db.connect() 
+    pg_db.connect()
     #pg_db.drop_tables([Cliente,Tarjeta,Pago,Pedido,Pedido_compuesto,Pedido_simple,Producto,Contiene_prod,Cuenta])
     pg_db.create_tables([Cliente,Tarjeta,Pago,Pedido,Pedido_compuesto,Pedido_simple,Producto,Contiene_prod,Cuenta])
     menu()
