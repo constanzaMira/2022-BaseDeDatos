@@ -253,24 +253,21 @@ def crear_pedido():
             numero_producto=input("ingresar id producto")
             cantidad_a_comprar=int(input("ingresar cantidad que se desea comprar"))
             cantidad_productos_en_la_compra=cantidad_productos_en_la_compra + cantidad_a_comprar
-            cantidad_de_producto= Producto.select(Producto.stock).where(Producto.numero == numero_producto)
+            cantidad_de_producto= Producto.get(Producto.numero == numero_producto).stock
+
             print(cantidad_de_producto)
 
-            #cantidad_de_producto no agarra el numero, solo la query por lo que no se puede hacer la resta, FIXme
-
             if cantidad_productos_en_la_compra>20 or (cantidad_de_producto-cantidad_a_comprar)<0:
-                print(cantidad_productos_en_la_compra)
-                print(cantidad_de_producto-cantidad_a_comprar)
                 print("No es posible realizar pedido")
                 query = Pedido.update(estado="rechazado")
                 query.execute()
                 return
             else:
-                estado1="realizado"
-                numero_pago=registrar_pago(estado1)
+
                 new_pedido_simple = Pedido_simple.create(numero_pedido = numero_pedido,numero_cuenta=numero_cuenta,numero_pago=numero_pago)  
                 new_pedido_simple.save()
-                
+                estado1="realizado"
+                numero_pago=registrar_pago(estado1)
                 stock_nuevo= cantidad_de_producto-cantidad_a_comprar
                 query = Producto.update(stock = stock_nuevo)
                 query.execute()
@@ -344,7 +341,7 @@ def simple_dentro_de_compuesto(numero_pedido):
             stock_nuevo= cantidad_de_producto-cantidad_a_comprar
             query = Producto.update(stock = stock_nuevo)
             query.execute()
-            query1 = Pedido.update(estado ="realizado" )#como se que estoy cambiando el estado del pedido que quiero
+            query1 = Pedido.update(estado ="realizado")#como se que estoy cambiando el estado del pedido que quiero
             query1.execute()
             respuesta=input( "Desea seguir agregando items? (Si/No)")
             if respuesta=="No":
@@ -352,9 +349,11 @@ def simple_dentro_de_compuesto(numero_pedido):
    
 
 def registrar_pago(estado):
-    numero_tarjeta=input("ingrese numero de tarjeta")
-    new_pago= Pago.create(estado,numero_tarjeta)
+    numero_tarjeta=input(" Ingrese numero tarjeta")
+    print(estado)
+    new_pago= Pago.create(estado=estado,numero_tarjeta=numero_tarjeta)
     new_pago.save()
+    print(new_pago)
     numero_pago=new_pago
     return numero_pago
 
