@@ -320,9 +320,12 @@ def crear_pedido():
 def simple_dentro_de_compuesto(numero_pedido,numero_cuenta):
     cantidad_productos_en_la_compra=0
     mas_productos=True
+
     while (mas_productos):
+
         numero_producto=input("ingresar id producto")
         cantidad_a_comprar=int(input("ingresar cantidad que se desea comprar"))
+        
         cantidad_productos_en_la_compra=cantidad_productos_en_la_compra + cantidad_a_comprar
         cantidad_de_producto= Producto.get(Producto.numero == numero_producto).stock
         if cantidad_productos_en_la_compra>20 or (cantidad_de_producto-cantidad_a_comprar)<0:
