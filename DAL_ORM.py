@@ -40,7 +40,7 @@ class Cuenta(BaseModel):
     
 class Pago(BaseModel):
     numero = AutoField(primary_key=True)
-    estado = IntegerField()
+    estado = TextField()
     numero_tarjeta= ForeignKeyField(Tarjeta)
 
 
@@ -159,24 +159,27 @@ def create_cliente():
         print("Cliente registrado correctamente")
 
 
-    print ("Desea asociar una trajeta?")
-    respuesta=input("si/no")
-    if respuesta=="si":
-        banco=input("ingrese nombre del banco")
-        tipo=input("ingrese tipo de trajeta (credito/debito)")
-        #Falta controlar que solo se puede crear la tarjeta si es que no existe para ese banco y para ese tipo credito/debito
+    respuesta=True
+    while respuesta:
+        print ("Desea asociar una trajeta?")
+        respuesta=input("si/no")   
+        if respuesta=="si":
+            banco=input("ingrese nombre del banco")
+            tipo=input("ingrese tipo de trajeta (credito/debito)")
+            #Falta controlar que solo se puede crear la tarjeta si es que no existe para ese banco y para ese tipo credito/debito
 
-        new_tarjeta=Tarjeta(banco=banco,tipo=tipo)
-        new_tarjeta.save()
+            new_tarjeta=Tarjeta(banco=banco,tipo=tipo)
+            new_tarjeta.save()
 
-        numero_tarjeta=new_tarjeta
+            numero_tarjeta=new_tarjeta
 
-        new_cuenta=Cuenta.create(numero_cliente=numero_cliente,numero_tarjeta=numero_tarjeta)
-        new_cuenta.save()
-        print("Cuenta registrada correctamente")
-        return
-    else:
-        return
+            new_cuenta=Cuenta.create(numero_cliente=numero_cliente,numero_tarjeta=numero_tarjeta)
+            new_cuenta.save()
+            print("Cuenta registrada correctamente")
+            
+        else:
+            respuesta=False
+            
 
 
 def delete_cliente():
@@ -244,7 +247,7 @@ def crear_pedido():
         new_pedido = Pedido.create(numero_cliente=numero_cliente,estado="en proceso")
         new_pedido.save()
         numero_pedido=new_pedido
-        print(numero_pedido)
+        
         
         mas_productos=True
         cantidad_productos_en_la_compra=0
@@ -255,7 +258,7 @@ def crear_pedido():
             cantidad_productos_en_la_compra=cantidad_productos_en_la_compra + cantidad_a_comprar
             cantidad_de_producto= Producto.get(Producto.numero == numero_producto).stock
 
-            print(cantidad_de_producto)
+            
 
             if cantidad_productos_en_la_compra>20 or (cantidad_de_producto-cantidad_a_comprar)<0:
                 print("No es posible realizar pedido")
@@ -263,11 +266,11 @@ def crear_pedido():
                 query.execute()
                 return
             else:
-
+                estado1="realizado"
+                numero_pago=registrar_pago(estado1,numero_cuenta)
                 new_pedido_simple = Pedido_simple.create(numero_pedido = numero_pedido,numero_cuenta=numero_cuenta,numero_pago=numero_pago)  
                 new_pedido_simple.save()
-                estado1="realizado"
-                numero_pago=registrar_pago(estado1)
+
                 stock_nuevo= cantidad_de_producto-cantidad_a_comprar
                 query = Producto.update(stock = stock_nuevo)
                 query.execute()
@@ -277,26 +280,23 @@ def crear_pedido():
                         query1 = Pedido.update(estado ="realizado")#como se que estoy cambiando el estado del pedido que quiero
                         query1.execute()
                         
-                respuesta=input( "Desea seguir agregando items? (Si/No)")
-                if respuesta=="No":
+                respuesta=input( "Desea seguir agregando items? (si/no)")
+                if respuesta=="no":
                     mas_productos=False
                     
     if pedido_a_realizar=="2":
 
         email_cliente = input("Ingrese email") 
         numero_cliente=Cliente.select(Cliente.numero).where(Cliente.email==email_cliente)
+        numero_cuenta=Cuenta.select(Cuenta.numero).where(Cuenta.numero_cliente==numero_cliente)
 
-        #numero_tarjeta1=Cuenta.select(Cuenta.numero_tarjeta).where(Cuenta.numero_cliente==numero_cliente)
-        #numero_cuenta=Cuenta.select(Cuenta.numero).where(Cuenta.numero_cliente==numero_cliente)
-
-
-        new_pedido = Pedido.create(numero_cliente=numero_cliente,estado="en proceso")
-        new_pedido.save()
-        numero_pedido1=new_pedido
+        new_pedido1 = Pedido.create(numero_cliente=numero_cliente,estado="en proceso")
+        new_pedido1.save()
+        numero_pedido1=new_pedido1
 
         mas_pedidos=True
         while(mas_pedidos):
-            new_pedido_compuesto=Pedido_compuesto.create(numero_pedido1)
+            new_pedido_compuesto=Pedido_compuesto.create(numero_pedido=numero_pedido1)
             new_pedido_compuesto.save()
 
             print("Que tipo de pedido se desea realizar")
@@ -304,9 +304,9 @@ def crear_pedido():
             print("2-Compuesto")
             pedido_a_realizar=input("")
             if pedido_a_realizar=="1":
-                simple_dentro_de_compuesto(numero_pedido1)
+                simple_dentro_de_compuesto(numero_pedido1,numero_cuenta)
             elif pedido_a_realizar=="2":
-                new_pedido_compuesto=Pedido_compuesto.create(numero_pedido1)
+                new_pedido_compuesto=Pedido_compuesto.create(numero_pedido=numero_pedido1)
                 new_pedido_compuesto.save()
             else:
                 print("Opcion invalida")
@@ -317,43 +317,47 @@ def crear_pedido():
         print("Opcion invalida")
         return
 
-def simple_dentro_de_compuesto(numero_pedido):
-    numero_cuenta = input("ingrese numero de cuenta")
-
-    mas_productos=True
+def simple_dentro_de_compuesto(numero_pedido,numero_cuenta):
     cantidad_productos_en_la_compra=0
-
+    mas_productos=True
     while (mas_productos):
         numero_producto=input("ingresar id producto")
-        cantidad_a_comprar=input("ingresar cantidad que se desea comprar")
+        cantidad_a_comprar=int(input("ingresar cantidad que se desea comprar"))
         cantidad_productos_en_la_compra=cantidad_productos_en_la_compra + cantidad_a_comprar
-        cantidad_de_producto= Producto.select(Producto.stock).where(Producto.numero == numero_producto)
-        if cantidad_productos_en_la_compra>20 or cantidad_a_comprar-cantidad_de_producto<0:
+        cantidad_de_producto= Producto.get(Producto.numero == numero_producto).stock
+        if cantidad_productos_en_la_compra>20 or (cantidad_de_producto-cantidad_a_comprar)<0:
             print("No es posible realizar pedido")
-            estado="rechazado"
-            registrar_pago(estado)
+            query = Pedido.update(estado="rechazado")
+            query.execute()
             return
         else:
-            estado1="Realizado"
-            numero_pago=registrar_pago(estado1)
+            estado1="realizado"
+            numero_pago=registrar_pago(estado1,numero_cuenta)
             new_pedido_simple = Pedido_simple.create(numero_pedido = numero_pedido,numero_cuenta=numero_cuenta,numero_pago=numero_pago)  
             new_pedido_simple.save()
+
             stock_nuevo= cantidad_de_producto-cantidad_a_comprar
             query = Producto.update(stock = stock_nuevo)
-            query.execute()
-            query1 = Pedido.update(estado ="realizado")#como se que estoy cambiando el estado del pedido que quiero
-            query1.execute()
-            respuesta=input( "Desea seguir agregando items? (Si/No)")
-            if respuesta=="No":
-                mas_productos=False 
+            query.execute()            
+            for pedido in Pedido:
+                if Pedido.numero == numero_pedido:
+                    query1 = Pedido.update(estado ="realizado")
+                    query1.execute()
+                        
+            respuesta=input( "Desea seguir agregando items? (si/no)")
+            if respuesta=="no":
+                mas_productos=False
    
 
-def registrar_pago(estado):
-    numero_tarjeta=input(" Ingrese numero tarjeta")
-    print(estado)
+def registrar_pago(estado,numero_cuenta):
+    numero_tarjeta= Cuenta.get(Cuenta.numero==numero_cuenta).numero_tarjeta
+
+    print(numero_tarjeta)
+    
     new_pago= Pago.create(estado=estado,numero_tarjeta=numero_tarjeta)
-    new_pago.save()
     print(new_pago)
+    new_pago.save()
+    
     numero_pago=new_pago
     return numero_pago
 
@@ -389,16 +393,16 @@ def listar_clientes():
 def pedidos_de_cliente():
     #Los pedidos de un cliente
     pg = psycopg2.connect(dbname="pedidos" , user="labuser" , password="labuser",host="192.168.56.101", port=5432)
-    #query= select(Cliente.email,Pedido.numero).join(Cliente,Pedido).group_by(Cliente.email)
-    #print(query)
 
     sql='''SELECT c.email, p.numero FROM Cliente AS c JOIN Pedido AS p
                             ON (c.numero = p.numero_cliente_id)'''
 
     cur = pg.cursor()
 
-    pedidos = cur.execute(sql)  
+    cur.execute(sql)
     
+    pedidos = cur.fetchall()
+
     print(pedidos)
     
     cur.close()
