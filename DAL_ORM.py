@@ -159,26 +159,22 @@ def create_cliente():
         print("Cliente registrado correctamente")
 
 
-    respuesta=True
-    while respuesta:
-        print ("Desea asociar una trajeta?")
-        respuesta=input("si/no")   
-        if respuesta=="si":
-            banco=input("ingrese nombre del banco")
-            tipo=input("ingrese tipo de trajeta (credito/debito)")
-            #Falta controlar que solo se puede crear la tarjeta si es que no existe para ese banco y para ese tipo credito/debito
+    print ("Desea asociar una trajeta?")
+    respuesta=input("si/no")   
+    if respuesta=="si":
+        banco=input("ingrese nombre del banco")
+        tipo=input("ingrese tipo de trajeta (credito/debito)")
 
-            new_tarjeta=Tarjeta(banco=banco,tipo=tipo)
-            new_tarjeta.save()
+        new_tarjeta=Tarjeta(banco=banco,tipo=tipo)
+        new_tarjeta.save()
 
-            numero_tarjeta=new_tarjeta
+        numero_tarjeta=new_tarjeta
 
-            new_cuenta=Cuenta.create(numero_cliente=numero_cliente,numero_tarjeta=numero_tarjeta)
-            new_cuenta.save()
-            print("Cuenta registrada correctamente")
-            
-        else:
-            respuesta=False
+        new_cuenta=Cuenta.create(numero_cliente=numero_cliente,numero_tarjeta=numero_tarjeta)
+        new_cuenta.save()
+        print("Cuenta registrada correctamente")        
+    else:
+        return
             
 
 
@@ -204,31 +200,40 @@ def update_cliente():
             print ("4. Email")
             print ("5. Volver al menu")
             dato_update = input ("Ingrese que tipo de dato desea cambiar")
-            valor_update = input("Ingrese que valor quiere colocar en su lugar")
             if (dato_update=="1"):
+                valor_update = input("Ingrese que valor quiere colocar en su lugar")
                 query = Cliente.update(nombre = valor_update)
                 query.execute()
                 print("Modificacion realizada con exito")
+                return
+
             elif (dato_update=="2"):
+                valor_update = input("Ingrese que valor quiere colocar en su lugar")
                 query = Cliente.update(direccion = valor_update)
                 query.execute()
                 print("Modificacion realizada con exito")
+                return
+
             elif (dato_update=="3"):
+                valor_update = input("Ingrese que valor quiere colocar en su lugar")
                 query = Cliente.update(telefono = valor_update)
                 query.execute()
                 print("Modificacion realizada con exito")
+                return
+
             elif (dato_update=="4"):
+                valor_update = input("Ingrese que valor quiere colocar en su lugar")
                 query = Cliente.update(email = valor_update)
                 query.execute()
                 print("Modificacion realizada con exito")
+                return
+                
             elif (dato_update=="5"): 
                 menu()
-            else:
-                print("Seleccione una de las opciones correctamente")
-                create_cliente()
-        else: 
-            print("Numero ingresado incorrecto")
-            update_cliente()
+            
+            else: 
+                print("Numero ingresado incorrecto")
+                update_cliente()
 
 
 
@@ -325,7 +330,7 @@ def simple_dentro_de_compuesto(numero_pedido,numero_cuenta):
 
         numero_producto=input("ingresar id producto")
         cantidad_a_comprar=int(input("ingresar cantidad que se desea comprar"))
-        
+
         cantidad_productos_en_la_compra=cantidad_productos_en_la_compra + cantidad_a_comprar
         cantidad_de_producto= Producto.get(Producto.numero == numero_producto).stock
         if cantidad_productos_en_la_compra>20 or (cantidad_de_producto-cantidad_a_comprar)<0:
@@ -406,7 +411,9 @@ def pedidos_de_cliente():
     
     pedidos = cur.fetchall()
 
-    print(pedidos)
+    print("mail" + "    " + "numero")
+    for pedido in pedidos:
+        print(pedido[0] + "    " + str(pedido[1]))
     
     cur.close()
 
