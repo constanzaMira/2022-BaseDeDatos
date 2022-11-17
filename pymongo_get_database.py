@@ -20,6 +20,7 @@ def menu():
    while respuesta:
       print("1. Insertar pedido")
       print("2. Consultar pedido")
+      print("3. Borrar pedido")
       r=input("")
       if r=="1":
          numero = input("Ingrese numero pedido")
@@ -30,6 +31,9 @@ def menu():
          id_registro = insertar_pedido(pedido)
       elif r=="2":
          consultar_pedido()
+      elif r=="3":
+         numerop= input("Ingrese numero pedido que desea eliminar")
+         eliminar_pedido(numerop)
       else:
          return
 
@@ -46,7 +50,14 @@ def consultar_pedido():
    for pedido in res:
       print("{:<20} {:<20} {:<20}".format(pedido["Numero"],pedido["Numero_Cliente"],pedido["Estado"]))
 
-# This is added so that many files can reuse the function get_database()
+def eliminar_pedido(numeropedido):
+   dbname = get_database()
+   res = dbname["pedidos"].delete_one({"Numero":numeropedido})
+   
+   if res.deleted_count==1:
+      print("Se elimino con exito")
+   return 
+
 if __name__ == "__main__":   
   
    # Get the database
